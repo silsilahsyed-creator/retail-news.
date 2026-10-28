@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Retail India Today</title>
+<meta name="description" content="Latest retail, e-commerce and quick commerce news from across India.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#EEF1F4;--surface:#FFFFFF;--ink:#13202E;--muted:#5B6877;--line:#D5DBE2;--accent:#0B6E6E;--accent-ink:#FFFFFF}
+@media(prefers-color-scheme:dark){:root{--bg:#0E151D;--surface:#16202B;--ink:#E8EDF2;--muted:#93A0AE;--line:#263341;--accent:#4FC3C3;--accent-ink:#0E151D}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Archivo,system-ui,sans-serif}
+.wrap{max-width:760px;margin:0 auto;padding:0 18px}
+header{padding:40px 0 18px}
+h1{margin:0;font-size:clamp(2.2rem,7vw,3.4rem);line-height:1;font-weight:800;letter-spacing:-.03em}
+header p{margin:10px 0 0;color:var(--muted);max-width:46ch}
+.bar{position:sticky;top:0;background:var(--bg);padding:12px 0;border-bottom:1px solid var(--line);z-index:5}
+.tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px}
+.tabs button{flex:none;border:1px solid var(--line);background:transparent;color:var(--ink);padding:7px 14px;border-radius:99px;font:inherit;font-size:.92rem;cursor:pointer}
+.tabs button[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+input[type=search]{width:100%;margin-top:10px;padding:10px 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);font:inherit}
+.item{display:grid;grid-template-columns:1fr 96px;gap:16px;padding:20px 0;border-bottom:1px solid var(--line)}
+.item.noimg{grid-template-columns:1fr}
+.meta{font-size:.85rem;color:var(--muted);margin:0 0 4px}
+.meta b{color:var(--accent);font-weight:600}
+.item h2{margin:0 0 6px;font-size:1.15rem;line-height:1.3;font-weight:600}
+.item h2 a{color:inherit;text-decoration:none}
+.item h2 a:hover{text-decoration:underline}
+.item p{margin:0;color:var(--muted);font-size:.95rem}
+.item img{width:96px;height:96px;object-fit:cover;border-radius:8px;background:var(--line)}
+.state{padding:48px 0;color:var(--muted)}
+footer{padding:28px 0 48px;color:var(--muted);font-size:.85rem}
+footer a{color:inherit}
+@media(max-width:480px){.item{grid-template-columns:1fr 72px}.item img{width:72px;height:72px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+<h1>Retail India Today</h1>
+<p>Headlines from across Indian retail, e-commerce and quick commerce, updated through the day.</p>
+</header>
+<div class="bar">
+<div class="tabs" id="tabs" role="group" aria-label="Categories"></div>
+<input type="search" id="q" placeholder="Search headlines" aria-label="Search headlines">
+</div>
+<main id="feed" aria-live="polite"><p class="state">Loading the latest news…</p></main>
+<footer>
+<p id="updated"></p>
+<p>Each headline links to the publisher’s own page, where you can read the full story. News data from <a href="https://newsdata.io" rel="noopener">NewsData.io</a>.</p>
+</footer>
+</div>
+<script>
+let all = [], cat = "All";
+const feed = document.getElementById("feed"), tabs = document.getElementById("tabs"), q = document.getElementById("q");
+
+function ago(iso){
+  const t = Date.parse(iso.replace(" ","T")+(iso.includes("Z")||iso.includes("+")?"":"Z"));
+  if(isNaN(t)) return "";
+  const h = Math.round((Date.now()-t)/36e5);
+  if(h<1) return "Just now";
+  if(h<24) return h+"h ago";
+  return Math.round(h/24)+"d ago";
+}
+function el(tag, cls, text){const e=document.createElement(tag); if(cls)e.className=cls; if(text!=null)e.textContent=text; return e;}
+
+function render(){
+  const term = q.value.trim().toLowerCase();
+  const list = all.filter(a => (cat==="All"||a.category===cat) && (!term || (a.title+" "+a.summary).toLowerCase().includes(term)));
+  feed.replaceChildren();
+  if(!list.length){ feed.append(el("p","state", all.length ? "No headlines match. Try another category or search." : "No stories yet. Check back after the next update.")); return; }
+  for(const a of list){
+    const row = el("article","item"+(a.image?"":" noimg"));
+    const body = el("div");
+    const meta = el("p","meta"); meta.append(el("b",null,a.category), document.createTextNode(" · "+a.source+(a.date?" · "+ago(a.date):"")));
+    const h = el("h2"); const link = el("a",null,a.title); link.href=a.link; link.target="_blank"; link.rel="noopener noreferrer"; h.append(link);
+    body.append(meta,h); if(a.summary) body.append(el("p",null,a.summary));
+    row.append(body);
+    if(a.image){const img=el("img"); img.src=a.image; img.alt=""; img.loading="lazy"; img.referrerPolicy="no-referrer"; img.onerror=()=>{img.remove();row.classList.add("noimg")}; row.append(img);}
+    feed.append(row);
+  }
+}
+function buildTabs(){
+  const cats = ["All", ...new Set(all.map(a=>a.category))];
+  tabs.replaceChildren();
+  for(const c of cats){const b=el("button",null,c); b.type="button"; b.setAttribute("aria-pressed", c===cat); b.onclick=()=>{cat=c;buildTabs();render()}; tabs.append(b);}
+}
+fetch("news.json",{cache:"no-store"}).then(r=>r.json()).then(d=>{
+  all = d.articles||[];
+  if(d.updated) document.getElementById("updated").textContent = "Last updated "+new Date(d.updated).toLocaleString("en-IN",{dateStyle:"medium",timeStyle:"short"});
+  buildTabs(); render();
+}).catch(()=>{feed.replaceChildren(el("p","state","Could not load the news right now. Please refresh in a moment."))});
+q.addEventListener("input", render);
+</script>
+</body>
+</html>
